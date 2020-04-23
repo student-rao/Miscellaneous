@@ -1,6 +1,6 @@
 ## 防火墙账号信息
 
-![image](https://raw.githubusercontent.com/starnightcyber/firewall-info/master/%E9%98%B2%E7%81%AB%E5%A2%99.png)
+![image](https://github.com/starnightcyber/Miscellaneous/blob/master/firewall-info/%E9%98%B2%E7%81%AB%E5%A2%99.png)
 
 
 
