@@ -134,4 +134,6 @@ PermitEmptyPasswords => no
 ```
 也有做简单的数据统计，便于了解大致的检测项的符合情况。
 
+![image](https://github.com/starnightcyber/Miscellaneous/blob/master/%E5%9F%BA%E7%BA%BF%E6%A3%80%E6%9F%A5%26%E5%8A%A0%E5%9B%BA/os_output.png)
 
+以上，是操作系统的部分...
