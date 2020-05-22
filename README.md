@@ -11,6 +11,14 @@ Miscellaneous things
 ## 搬砖工
 
 <details>
+  <summary>2020.5.22 ~ 操作系统基线检查脚本</summary>
+  目前在CentOS 7.6上进行测试，可以自主调整和更改：
+  
+  [baseline_os.sh](https://github.com/starnightcyber/Miscellaneous/blob/master/%E5%9F%BA%E7%BA%BF%E6%A3%80%E6%9F%A5%26%E5%8A%A0%E5%9B%BA/baseline_os.sh)
+
+</details>
+
+<details>
   <summary>2020.5.13 ~ 基线检查&加固</summary>
 
   * YDT 2700-2014 电信网和互联网安全防护基线配置要求及检测要求 数据库
