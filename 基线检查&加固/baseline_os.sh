@@ -106,6 +106,25 @@ manual=$(($manual+1))
 print_manual_check
 
 
+check_point="帐号管理-4:检查是否设置不同的用户组"
+index=$(($index+1))
+print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
+
+print_info "根据系统要求及用户的业务需求，建立不同的用户组，将用户账号分配到相应的组中："
+groups=`cat /etc/group | awk -F ':' '$3>1000{print $1}'`
+print_info "系统中存在的用户自定义用户组 gid >= 1000"
+print_info "[ $groups ]"
+
+if [ -n "$groups" ];then
+  pass=$(($pass+1))
+  print_pass
+else
+  fail=$(($fail+1))
+  print_fail
+fi
+
+
 check_point="口令策略-1:检查是否设置口令生存周期 "
 index=$(($index+1))
 print_check_point $index $check_point
