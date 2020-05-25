@@ -3,16 +3,19 @@
 # 绿色字体输出
 pass=$(($pass+1))
 print_pass(){
-    echo -e "\033[32m检测结果 ==> PASS \033[0m"
+    echo -e "\033[32m检测结果 ++> PASS \033[0m"
+    echo "++> PASS" >> "$file"
 }
 # 红色字体输出
 fail=$(($fail+1))
 print_fail(){
-  echo -e "\033[31m检测结果 ==> FAIL \033[0m"
+  echo -e "\033[31m检测结果 --> FAIL \033[0m"
+  echo "--> FAIL" >> "$file"
 }
 # 黄色字体输出
 print_manual_check(){
-  echo -e "\033[33m请手工检测 ==> Manual \033[0m"
+  echo -e "\033[33m请手工检测 ##> Manual \033[0m"
+  echo "##> Manual" >> "$file"
 }
 # 蓝色字体输出
 print_info(){
@@ -25,12 +28,20 @@ print_check_point(){
   echo "------------------------------------------------------------------------"
 }
 print_summary(){
+  # 输出显示
   print_info "---------------------------- Summary -----------------------------"
   echo -e "\033[35m全部检测项： $1 \033[0m"
   echo -e "\033[32m通过检测项： $2 \033[0m"
   echo -e "\033[31m失败检测项： $3 \033[0m"
   echo -e "\033[33m手工检测项： $4 \033[0m"
   print_info "------------------------------------------------------------------"
+  # 写入文件
+  echo "---------------------------- Summary -----------------------------" >> "$file"
+  echo "全部检测项： $1" >> "$file"
+  echo "通过检测项： $2" >> "$file"
+  echo "失败检测项： $3" >> "$file"
+  echo "手工检测项： $4" >> "$file"
+  echo "------------------------------------------------------------------" >> "$file"
 }
 # ====================================
 print_info "---------------------- 正在执行操作系统基线检查 ----------------------"
@@ -38,11 +49,18 @@ index=0       # 检测项编号
 pass=0        # 通过的检测项数
 fail=0        # 未通过的检测项数
 manual=0      # 需手工复核的检测项数
+file="$1"
+
+if [ -z "$file" ]; then
+  file="os_check_result.txt"
+fi
+print_info "检测结果将写入文件 $file中"
 
 
 check_point="帐号管理-1:检查是否设置除root之外UID为0的用户"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 result=`/bin/cat /etc/passwd | /bin/awk -F: '($3 == 0) { print $1 }'`
 print_info "UID为0的用户如下:"
@@ -60,6 +78,7 @@ fi
 check_point="帐号管理-2:检查是否按用户分配账号 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 up_uidmin=`(grep -v ^# /etc/login.defs |grep "^UID_MIN"|awk '($1="UID_MIN"){print $2}')`
 up_uidmax=`(grep -v ^# /etc/login.defs |grep "^UID_MAX"|awk '($1="UID_MAX"){print $2}')`
@@ -69,16 +88,17 @@ print_info "[ $users ]"
 
 if [ "$users" ]; then
     pass=$(($pass+1))
-print_pass
+    print_pass
 else
     fail=$(($fail+1))
-print_fail
+    print_fail
 fi
 
 
-check_point="帐号管理-1:检查是否删除与设备运行、维护等工作无关的账号 "
+check_point="帐号管理-3:检查是否删除与设备运行、维护等工作无关的账号 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 print_info "系统中存在如下账号，请核对是否是必要的账号:"
 account=`/bin/cat /etc/shadow | /usr/bin/sed '/^\s*#/d' | /bin/awk -F: '($2!~/^*/) && ($2!~/^!!/) {print $1}'`
 print_info "[ $account ]"
@@ -89,6 +109,7 @@ print_manual_check
 check_point="口令策略-1:检查是否设置口令生存周期 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 passmax=`cat /etc/login.defs | grep PASS_MAX_DAYS | grep -v ^#`
 print_info "PASS_MAX_DAYS 应介于1~90，检测值如下："
 print_info "$passmax"
@@ -111,6 +132,7 @@ fi
 check_point="口令策略-2:检查是否设置口令更改最小间隔天数 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 passmin=`cat /etc/login.defs | grep PASS_MIN_DAYS | grep -v ^#`
 print_info "PASS_MIN_DAYS 大于等于 7，检测值如下："
@@ -133,6 +155,7 @@ fi
 check_point="口令策略-3:检查设备密码复杂度策略"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "系统目前的密码复杂度策略，如下："
 line=`cat /etc/pam.d/system-auth | grep password | grep pam_cracklib.so | grep -v ^#`
@@ -173,6 +196,7 @@ fi
 check_point="口令策略-4:检查是否设置口令过期前警告天数  "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "口令过期前告警天数PASS_WARN_AGE应设置为 7"
 pass_age=`cat /etc/login.defs | grep PASS_WARN_AGE | grep -v ^# `
@@ -197,6 +221,7 @@ fi
 check_point="口令策略-5:检查是否存在空口令账号"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`/bin/cat /etc/shadow | /bin/awk -F: '($2 == "" ) { print "user " $1 " does not have a password "}'`
 print_info '空口令账号:'"[ $tmp ]"
@@ -213,6 +238,7 @@ fi
 check_point="口令策略-6:检查密码重复使用次数限制"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 #echo "password sufficient pam_unix.so remember=5"
 line=`cat /etc/pam.d/system-auth | grep password | grep sufficient | grep pam_unix.so | grep remember | grep -v ^#`
 print_info "口令重复使用限制次数 remember >=5"
@@ -236,6 +262,7 @@ fi
 check_point="口令策略-7:检查账户认证失败次数限制 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 print_info "登录失败限制可以使用pam_tally或pam.d，请手工检测/etc/pam.d/system-auth"
 manual=$(($manual+1))
 print_manual_check
@@ -244,6 +271,7 @@ print_manual_check
 check_point="认证授权-1:检查用户目录缺省访问权限设置 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /etc/profile | grep "umask" | grep -v ^# `
 print_info "文件目录缺省访问权限应是 027，实际检测值为："
@@ -263,6 +291,7 @@ fi
 check_point="认证授权-2:检查是否设置SSH登录前警告Banner "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 banner1=`cat /etc/ssh/sshd_config | grep Banner`
 print_info "检查SSH配置文件:/etc/ssh/sshd_config"
@@ -288,6 +317,7 @@ fi
 check_point="日志审计-1:检查是否对登录进行日志记录"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /etc/rsyslog.conf | grep /var/log/secure | egrep 'authpriv'.\('info|\*'\) | grep -v ^#`
 print_info "/etc/rsyslog.conf 文件中 authpriv 的配置如下所示:"
@@ -305,6 +335,7 @@ fi
 check_point="日志审计-2:检查是否启用cron行为日志功能 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /etc/rsyslog.conf | grep /var/log/cron | egrep 'cron.\*' | grep -v ^#`
 print_info "/etc/rsyslog.conf 文件中 cron 的配置如下所示:"
@@ -322,6 +353,7 @@ fi
 check_point="日志审计-3:检查是否配置远程日志功能 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 print_info "非强制，请手工检测"
 print_info "请检查/etc/rsyslog.conf文件，查看是否配置日志服务器"
 
@@ -332,6 +364,7 @@ print_manual_check
 check_point="日志审计-4:检查是否配置su命令使用情况记录 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /etc/rsyslog.conf | grep /var/log/secure | egrep 'authpriv'.\('info|\*'\) | grep -v ^#`
 print_info "/etc/rsyslog.conf 文件中 authpriv 的配置如下所示:"
@@ -349,6 +382,7 @@ fi
 check_point="日志审计-5:检查日志文件权限设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 messages=`stat -c %a /var/log/messages`
 dmesg=`stat -c %a /var/log/dmesg`
@@ -380,6 +414,7 @@ fi
 check_point="日志审计-6:检查安全事件日志配置 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /etc/rsyslog.conf | grep /var/log/messages | egrep '\*.info;mail.none;authpriv.none;cron.none' | grep -v ^#`
 print_info "/etc/rsyslog.conf 文件中 /var/log/messages 的配置如下所示:"
@@ -397,6 +432,7 @@ fi
 check_point="文件权限-1:检查FTP用户上传的文件所具有的权限"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`netstat -lntp | grep ftp`
 print_info "$tmp"
@@ -423,6 +459,7 @@ fi
 check_point="文件权限-2:检查重要目录或文件权限设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 passwd=`stat -c %a /etc/passwd`
 shadow=`stat -c %a /etc/shadow`
@@ -445,6 +482,7 @@ fi
 check_point="网络通信-1:检查是否禁止root用户远程登录"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 Protocol=`cat /etc/ssh/sshd_config | grep -i Protocol | egrep -v ^\# | awk '{print $2}'`
 PermitRootLogin=`cat /etc/ssh/sshd_config | grep -i PermitRootLogin | egrep -v ^\# | awk '{print $2}'`
@@ -464,6 +502,7 @@ fi
 check_point="网络通信-2:检查使用IP协议远程维护的设备是否配置SSH协议，禁用Telnet协议 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 telnet=`netstat -lntp |grep telnet`
 ssh=`netstat -lntp |grep ssh`
@@ -485,6 +524,7 @@ fi
 check_point="网络通信-3:检查是否修改SNMP默认团体字"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 snmp=`ps -ef|grep "snmpd"|grep -v "grep"`
 
@@ -507,6 +547,7 @@ fi
 check_point="网络通信-4:检查是否禁止root用户登录FTP"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=$(systemctl restart vsftpd 2>&1)
 if [ -n "$tmp" ]; then
@@ -530,6 +571,7 @@ fi
 check_point="网络通信-5:检查是否使用PAM认证模块禁止wheel组之外的用户su为root"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "检查/etc/pam.d/su文件中，是否存在如下配置："
 echo "auth  sufficient pam_rootok.so"
@@ -554,6 +596,7 @@ fi
 check_point="其他配置-1:检查是否禁止匿名用户登录FTP"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "==>FTP服务未启用或者限制了匿名账号登录ftp服务器则合规"
 
@@ -576,9 +619,10 @@ else
 fi
 
 
-check_point="其他配置-2:"
+check_point="其他配置-2:检查是否删除了潜在危险文件"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "系统不应该存在.rhost、.netrc、hosts.equiv这三个文件则合规"
 
@@ -602,6 +646,7 @@ fi
 check_point="其他配置-3:检查是否设置命令行界面超时退出"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "命令行界面超时自动登出时间TMOUT应 <= 300s"
 TMOUT=`cat /etc/profile |grep -i TMOUT | grep -v ^#`
@@ -627,6 +672,7 @@ fi
 check_point="其他配置-4:检查系统是否禁用Ctrl+Alt+Delete组合键 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`cat /usr/lib/systemd/system/ctrl-alt-del.target | grep "Alias=ctrl-alt-del.target" | grep -v ^#`
 print_info "应禁用Ctrl+Alt+Delete组合键重启系统，Ctrl+Alt+Delete的配置如下："
@@ -644,6 +690,7 @@ fi
 check_point="其他配置-5:检查root用户的path环境变量"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "PATH环境变量如下："
 
@@ -661,6 +708,7 @@ fi
 check_point="其他配置-6:检查历史命令设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "HISTFILESIZE和HISTSIZE的值应小于等于5"
 
@@ -689,6 +737,7 @@ fi
 check_point="其他配置-7:检查是否设置SSH成功登录后Banner"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`systemctl status sshd | grep running`
 if [ -z "$tmp" ]; then
@@ -713,6 +762,7 @@ fi
 check_point="其他配置-8:检查是否限制FTP用户登录后能访问的目录"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`ps -ef | grep ftp | grep -v grep`
 if [ -z "$tmp" ]; then
@@ -737,6 +787,7 @@ fi
 check_point="其他配置-9:检查是否关闭数据包转发功能"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 ip_forward=`sysctl -n net.ipv4.ip_forward`
 print_info '==>ip_forward:'$ip_forward
@@ -753,6 +804,7 @@ fi
 check_point="其他配置-10:检查别名文件/etc/aliase"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "检查是否配合配置了ls和rm命令别名"
 
@@ -774,6 +826,7 @@ fi
 check_point="其他配置-11:检查是否使用NTP（网络时间协议）保持时间同步"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "==> 检查NTP服务"
 ntpd=`ps -ef|egrep "ntp|ntpd"|grep -v grep | grep "/usr/sbin/ntpd"`
@@ -800,6 +853,7 @@ fi
 check_point="其他配置-12:检查是否限制远程登录IP范围 "
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 print_info "请手工查看/etc/hosts.allow和/etc/hosts.deny两个文件"
 manual=$(($manual+1))
 print_manual_check
@@ -808,6 +862,7 @@ print_manual_check
 check_point="其他配置-13:检查NFS（网络文件系统）服务配置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`netstat -lntp | grep nfs`
 if [ -z "$tmp" ]; then
@@ -832,6 +887,7 @@ fi
 check_point="其他配置-14:检查是否配置定时自动屏幕锁定"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 idle_activation_enabled=`gconftool-2 -g /apps/gnome-screensaver/idle_activation_enabled`
 lock_enabled=`gconftool-2 -g /apps/gnome-screensaver/lock_enabled`
@@ -856,6 +912,7 @@ fi
 check_point="其他配置-15:检查是否安装chkrootkit进行系统监测"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 chkrootkit=`rpm -qa|grep -i "chkrootkit"`
 print_info "chkrootkit ==> ""$chkrootkit"
@@ -871,6 +928,7 @@ fi
 check_point="其他配置-16:检查是否安装OS补丁"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 os=`uname -a`
 print_info "==> please manual check os version ..."
@@ -882,6 +940,7 @@ print_manual_check
 check_point="其他配置-17:检查FTP banner设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`ps -ef | grep ftp | grep -v grep`
 if [ -z "$banner" ]; then
@@ -898,6 +957,7 @@ fi
 check_point="其他配置-18:检查Telnet banner设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 tmp=`systemctl status telnet.socket  | grep active`
 if [ -z "$tmp" ]; then
@@ -914,6 +974,7 @@ fi
 check_point="其他配置-19:检查系统内核参数配置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "==> tcp_syncookies的值应设为1"
 tcp_syncookies=`cat /proc/sys/net/ipv4/tcp_syncookies`
@@ -931,6 +992,7 @@ fi
 check_point="其他配置-20:检查系统openssh安全配置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 X11Forwarding=`cat /etc/ssh/sshd_config  | grep X11Forwarding | egrep -v ^\# | awk '{print $2}'`
 MaxAuthTries=`cat /etc/ssh/sshd_config  | grep MaxAuthTries | egrep -v ^\# | awk '{print $2}'`
@@ -957,6 +1019,7 @@ fi
 check_point="其他配置-21:检查系统coredump设置"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "设置* soft  core、* hard core为0，且注释掉ulimit -S -c 0 > /dev/null 2>&1"
 soft=`cat /etc/security/limits.conf | grep soft | grep core | grep 0 | grep ^*`
@@ -980,11 +1043,38 @@ fi
 check_point="其他配置-22:检查是否关闭不必要的服务和端口"
 index=$(($index+1))
 print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
 
 print_info "==>please check the output of the following command: "
 print_info "# chkconfig --list"
 
 manual=$(($manual+1))
 print_manual_check
+
+
+check_point="其他配置-23:检查磁盘空间占用率"
+index=$(($index+1))
+print_check_point $index $check_point
+echo "$index" "$check_point" >> "$file"
+
+print_info "检查磁盘空间占用率，建议不超过80%"
+print_info "`df -h`"
+space=$(df -h | awk -F "[ %]+" 'NR!=1''{print $5}')
+flag=0
+for i in $space
+do
+  if [ $i -ge 80 ];then
+    flag=1
+    print_info "请使用命令手工检查磁盘空间占用率情况"
+  fi
+done
+
+if [ "$flag" -eq 1 ];then
+  manual=$(($manual+1))
+  print_manual_check
+else
+  pass=$(($pass+1))
+  print_pass
+fi
 
 print_summary $index $pass $fail $manual
